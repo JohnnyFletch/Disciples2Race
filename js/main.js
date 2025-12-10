@@ -183,11 +183,13 @@ let isPlaying = false;
 function initializeAudio() {
     if (audio) return;
     
-    audio = new Audio('audio/dark.mp3');
+    audio = new Audio(window.location.origin + '/audio/dark.mp3');
     audio.volume = 0.1;
     audio.muted = false;
     audio.loop = true;
-    audio.preload = "metadata";
+    audio.preload = "auto"; // меняем на auto для лучшей загрузки
+    
+    console.log('Аудио инициализировано');
 
     audio.addEventListener('loadedmetadata', function() {
         if (audio.duration !== Infinity) {
@@ -199,26 +201,38 @@ function initializeAudio() {
     audio.pause();
 }
 
-audio_btn.addEventListener('click', function() {
-    initializeAudio();
-    
-    if (!isPlaying) {
-        // Воспроизводим аудио
-        audio.play().then(() => {
-            isPlaying = true;
-            audio_icon.classList.add('fa-volume-up');
-            audio_icon.classList.remove('fa-volume-off');
-        }).catch(error => {
-            console.log('Audio play failed:', error);
-        });
-    } else {
-        // Останавливаем аудио
-        audio.pause();
-        isPlaying = false;
-        audio_icon.classList.add('fa-volume-off');
-        audio_icon.classList.remove('fa-volume-up');
-    }
-});
-
-// Инициализируем при загрузке страницы
-initializeAudio();
+// Вешаем обработчик
+if (audio_btn) {
+    audio_btn.addEventListener('click', function() {
+        // Всегда инициализируем при первом клике
+        if (!audio) {
+            initializeAudio();
+        }
+        
+        if (!isPlaying) {
+            audio.play().then(() => {
+                console.log('✅ Музыка играет!');
+                isPlaying = true;
+                audio_icon.classList.add('fa-volume-up');
+                audio_icon.classList.remove('fa-volume-off');
+            }).catch(error => {
+                console.error('❌ Audio play failed:', error.name, error.message);
+                
+                // Авто-фикс для политики браузера
+                if (error.name === 'NotAllowedError') {
+                    console.log('Браузер заблокировал автовоспроизведение. Попробуйте нажать ещё раз.');
+                    // Сбрасываем флаг, чтобы можно было попробовать снова
+                    isPlaying = false;
+                }
+            });
+        } else {
+            audio.pause();
+            isPlaying = false;
+            console.log('⏸️ Музыка остановлена');
+            audio_icon.classList.add('fa-volume-off');
+            audio_icon.classList.remove('fa-volume-up');
+        }
+    });
+} else {
+    console.error('Кнопка .btn__sound не найдена!');
+}
